@@ -44,6 +44,9 @@ int main()
 	cam.set(CV_CAP_PROP_FRAME_WIDTH, 400); // CV_CAP_PROP_FRAME_WIDTH : Height of the frames in the video stream.
 	Mat realtime_frame; // 실시간 카메라로 들어오는 영상을 담기 위한 Mat 객체 선언.
 	Mat record_frame; // 실시간 카메라로 들어오는 영상을 기록하기 위한 Mat 객체 선언
+	Mat realtime_frame_with_biggest_contour;
+
+
 
 	std::thread thread_record(fun_record, &realtime_frame, &record_frame); // 영상의 화면을 기록하기 위한 스레드 생성
 
@@ -54,6 +57,7 @@ int main()
 		}
 
 		resize(record_frame, record_frame, Size(realtime_frame.cols, realtime_frame.rows), 0, 0, CV_INTER_LINEAR);
+		realtime_frame_with_biggest_contour = realtime_frame.clone();
 
 		Mat gray_realtime_frame; // realtime_frame 영상을 그레이 스케일로 저장하기 위한 객체
 		cvtColor(realtime_frame, gray_realtime_frame, COLOR_BGR2GRAY); // 영상을 그레이스케일로 변환
@@ -118,6 +122,12 @@ int main()
 				drawContours(drawing2, contours, largest_contour_index, Scalar(0, 255, 0), 2); // Draw the largest contour using previously stored index.
 
 				imshow("biggest contours", drawing2);
+
+
+
+				drawContours(realtime_frame_with_biggest_contour, contours, largest_contour_index, Scalar(0, 255, 0), 2);
+				imshow("realtime with biggest contour", realtime_frame_with_biggest_contour);
+
 			}
 			TIME_ELAPSED = false;
 		}

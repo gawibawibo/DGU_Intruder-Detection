@@ -1,30 +1,66 @@
+/*******************************************************************
+Creator : 2015112154 김석윤
+********************************************************************
+<Problem>
+- CCTV를 이용한 거동 수상자 인식
+
+<Input>
+- 현재 실시간 영상
+
+<Output>
+- 거동수상자의 존재 유무 판단
+********************************************************************/
+
 #include <opencv2/opencv.hpp>
+#include <thread>
+#include <iostream>
+#include <chrono>
 
 using namespace cv;
 
+RNG rng(12345);
+
+
+
+
 int main()
 {
-	Mat image = Mat(Size(300, 400), CV_8UC1, Scalar(255));
-	image(Rect(0, 0, 300, 200)) = Scalar(1);
+	VideoCapture cam(0); // 비디오 이미지를 불러온다.
 
-	putText(image, "HELLO", Point(50, 100), FONT_HERSHEY_PLAIN, 2, Scalar(255, 255, 255));
-	putText(image, "WORLD", Point(150, 300), FONT_HERSHEY_PLAIN, 2, Scalar(0, 0, 0));
+	cam.set(CV_CAP_PROP_FRAME_WIDTH, 600); // CV_CAP_PROP_FRAME_WIDTH : Width of the frames in the video stream.
+	cam.set(CV_CAP_PROP_FRAME_WIDTH, 400); // CV_CAP_PROP_FRAME_WIDTH : Height of the frames in the video stream.
+	Mat realtime_frame; // 실시간 카메라로 들어오는 영상을 담기 위한 Mat 객체 선언.
 
-	std::cout << "HELLO WORLD" << std::endl;
-	imshow("image", image);
-	Mat image2 = image.clone();
 
-	image2.release();
-	if (image2.empty()) {
-		std::cout << "empty!!" << std::endl;
-		image2 = image.clone();
+	HOGDescriptor hog;
+	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+	Mat frame;
+
+	while (cam.read(realtime_frame)) { // 종료 전까지 반복
+		if (realtime_frame.empty()) { // cv::Mat::empty 함수. 만약 어느 element도 없으면 true를 반환한다. 즉, 카메라를 통해 들어온 영상이 없으면 if문을 실행한다.
+			printf(" --(!) No cam frame -- Break!");
+			break;
+		}
+
+		
+
+
+
+		std::vector<Rect> detected;
+		hog.detectMultiScale(realtime_frame, detected);
+
+		for (Rect r : detected) {
+			Scalar c = Scalar(rand() % 256, rand() % 256, rand() % 256);
+			rectangle(realtime_frame, r, c, 3);
+
+		}
+
+		imshow("realtime_frame", realtime_frame);
+
+		if (waitKey(10) == 27) { // 27 : ESC를 누르면 종료. 27 == ESC key
+			break;
+		}
 	}
-	imshow("image again", image); imshow("image2", image2);
-
-	image = Scalar(0);
-	imshow("image scalra 0", image);
-
-
 
 	waitKey();
 	return 0;
