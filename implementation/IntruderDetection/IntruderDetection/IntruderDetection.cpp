@@ -103,10 +103,22 @@ int main()
 				int largest_area = 0;
 				int largest_contour_index = 0;
 				Rect bounding_rect;
+
+				///////////////////////////////////////////////////////////////////////////////// bound rect를 그리기 위함
+				// contour에 대한 outbound rect를 그리기 위한 변수 설정
+				std::vector<std::vector<Point> > contours_poly(contours.size());
+				std::vector<Rect> boundRect(contours.size());
+				///////////////////////////////////////////////////////////////////////////// bound rect를 그리기 위함
+
 				for (int i = 0; i < contours.size(); i++)
 				{
+					approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
+					boundRect[i] = boundingRect(Mat(contours_poly[i]));
+
 					Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 					drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
+					Scalar color2 = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)); // rect를 그리는 색
+					rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color2, 2, 8, 0);
 
 					double area = contourArea(contours[i]);  //  Find the area of contour
 					if (area > largest_area)
@@ -126,6 +138,7 @@ int main()
 
 
 				drawContours(realtime_frame_with_biggest_contour, contours, largest_contour_index, Scalar(0, 255, 0), 2);
+				rectangle(realtime_frame_with_biggest_contour, bounding_rect.tl(), bounding_rect.br(), Scalar(0, 255, 255), 2, 8, 0);
 				imshow("realtime with biggest contour", realtime_frame_with_biggest_contour);
 
 			}
