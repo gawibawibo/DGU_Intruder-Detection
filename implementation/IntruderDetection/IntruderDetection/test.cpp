@@ -1,67 +1,43 @@
-/*******************************************************************
-Creator : 2015112154 김석윤
-********************************************************************
-<Problem>
-- CCTV를 이용한 거동 수상자 인식
-
-<Input>
-- 현재 실시간 영상
-
-<Output>
-- 거동수상자의 존재 유무 판단
-********************************************************************/
-
-#include <opencv2/opencv.hpp>
-#include <thread>
-#include <iostream>
-#include <chrono>
+#include "opencv2/opencv.hpp"  
+#include <iostream>  
 
 using namespace cv;
-
-RNG rng(12345);
-
+using namespace std;
 
 
 
-int main()
+int main(int, char**)
 {
-	VideoCapture cam(0); // 비디오 이미지를 불러온다.
+    //동영상 파일로부터 부터 데이터 읽어오기 위해 준비  
+    VideoCapture cap1("example1_edit2.mp4");
+    if (!cap1.isOpened())
+    {
+        printf("동영상 파일을 열수 없습니다. \n");
+    }
 
-	cam.set(CV_CAP_PROP_FRAME_WIDTH, 600); // CV_CAP_PROP_FRAME_WIDTH : Width of the frames in the video stream.
-	cam.set(CV_CAP_PROP_FRAME_WIDTH, 400); // CV_CAP_PROP_FRAME_WIDTH : Height of the frames in the video stream.
-	Mat realtime_frame; // 실시간 카메라로 들어오는 영상을 담기 위한 Mat 객체 선언.
+    //동영상 플레이시 크기를  320x240으로 지정  
+    cap1.set(CAP_PROP_FRAME_WIDTH, 320);
+    cap1.set(CAP_PROP_FRAME_HEIGHT, 240);
 
 
-	HOGDescriptor hog;
-	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
-	Mat frame;
-
-	while (cam.read(realtime_frame)) { // 종료 전까지 반복
-		if (realtime_frame.empty()) { // cv::Mat::empty 함수. 만약 어느 element도 없으면 true를 반환한다. 즉, 카메라를 통해 들어온 영상이 없으면 if문을 실행한다.
-			printf(" --(!) No cam frame -- Break!");
-			break;
-		}
-
-		
+    Mat frame1;
+    namedWindow("video", 1);
 
 
 
-		std::vector<Rect> detected;
-		hog.detectMultiScale(realtime_frame, detected);
+    for (;;)
+    {
 
-		for (Rect r : detected) {
-			Scalar c = Scalar(rand() % 256, rand() % 256, rand() % 256);
-			rectangle(realtime_frame, r, c, 3);
+        //웹캡으로부터 한 프레임을 읽어옴  
+        cap1 >> frame1;
 
-		}
+        imshow("video", frame1);
 
-		imshow("realtime_frame", realtime_frame);
 
-		if (waitKey(10) == 27) { // 27 : ESC를 누르면 종료. 27 == ESC key
-			break;
-		}
-	}
+        //30ms 정도 대기하도록 해야 동영상이 너무 빨리 재생되지 않음.  
+        if (waitKey(20) == 27) break; //ESC키 누르면 종료  
+    }
 
-	waitKey();
-	return 0;
+
+    return 0;
 }

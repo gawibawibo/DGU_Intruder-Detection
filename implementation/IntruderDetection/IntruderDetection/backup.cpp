@@ -20,9 +20,7 @@ using namespace cv;
 
 bool TIME_ELAPSED; // 일정 시간이 지났는지 확인하는 bool 변수.
 RNG rng(12345);
-#define DIFF_THRESHOLD 0.03
-bool REMEMBER = true;
-bool DETECTED = false;
+#define DIFF_THRESHOLD 0.01
 
 
 // 영상을 기록하기 위한 함수
@@ -48,12 +46,7 @@ int main()
 	Mat record_frame; // 실시간 카메라로 들어오는 영상을 기록하기 위한 Mat 객체 선언
 	Mat realtime_frame_with_biggest_contour;
 	Mat sub;
-	Mat background;
-	Mat gray_background;
-	Mat thrsh_background;
-	double diff = 0;
-	Point center_of_rect_previous = Point(-10, -10);
-	Point center_of_rect = Point(-10, -10);
+
 
 	std::thread thread_record(fun_record, &realtime_frame, &record_frame); // 영상의 화면을 기록하기 위한 스레드 생성
 
@@ -79,12 +72,6 @@ int main()
 
 		Mat	thrsh_record_frame; // 실시간 영상과 기록된 영상을 이진화하여 저장하기 위한 객체 선언
 
-		if (REMEMBER && (diff < DIFF_THRESHOLD)) {
-			printf("secured\n");
-			background = thrsh_realtime_frame.clone();
-			REMEMBER = false;
-		}
-
 		if (TIME_ELAPSED) { // 기록 영상이 있는지 확인(=time interval이 지났는지 확인)
 
 			Mat gray_record_frame; // record_frame 영상을 그레이 스케일로 저장하기 위한 객체
@@ -92,11 +79,13 @@ int main()
 
 			// 정규화를 통해 이전 프레임과 현재 프레임의 차이의 정도를 구함
 			double errorL2 = cv::norm(gray_realtime_frame, gray_record_frame, CV_L2);
-			diff = errorL2 / (double)(gray_realtime_frame.rows * gray_record_frame.rows);
+			double diff = errorL2 / (double)(gray_realtime_frame.rows * gray_record_frame.rows);
 
-
-
-			if ((DETECTED || (diff >= DIFF_THRESHOLD))) { // 침입자가 발생했다고 판단한 경우
+			if (diff < DIFF_THRESHOLD) {
+				printf("secured\n");
+			}
+			else if (diff >= DIFF_THRESHOLD) { // 침입자가 발생했다고 판단한 경우
+				std::cout << "intruder~!!!" << std::endl;
 
 				//threshold(gray_record_frame, thrsh_record_frame, 0, 255, THRESH_BINARY | THRESH_OTSU); // 영상을 이진화한다. 
 				adaptiveThreshold(gray_record_frame, thrsh_record_frame, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 5, 10);
@@ -108,16 +97,14 @@ int main()
 
 				//erode(thrsh_realtime_frame, thrsh_realtime_frame, Mat(3, 3, CV_8U, Scalar(1)), Point(-1, -1), 2);
 				morphologyEx(thrsh_realtime_frame, thrsh_realtime_frame, MORPH_OPEN, Mat(3, 3, CV_8U, Scalar(1)), Point(-1, -1), 2);
-				morphologyEx(background, background, MORPH_OPEN, Mat(3, 3, CV_8U, Scalar(1)), Point(-1, -1), 2);
-
 				imshow("thrsh_realtime_frame", thrsh_realtime_frame);
 
 
 
-				sub = thrsh_realtime_frame - background; // 실시간 화면에서 record 영상을 뺀다.
+				sub = thrsh_realtime_frame - thrsh_record_frame; // 실시간 화면에서 record 영상을 뺀다.
 				imshow("sub", sub); // sub 출력
-				//GaussianBlur(sub, sub, Size(3, 3), 0, 0);// gray_realtime_frame 을 블러처리
-				//imshow("edited sub", sub); // sub 출력
+				GaussianBlur(sub, sub, Size(3, 3), 0, 0);// gray_realtime_frame 을 블러처리
+				imshow("edited sub", sub); // sub 출력
 
 				Mat opening_sub;
 				morphologyEx(sub, opening_sub, MORPH_OPEN, Mat(3, 3, CV_8U, Scalar(1)), Point(-1, -1), 2);
@@ -162,41 +149,26 @@ int main()
 					}
 				}
 
-
 				//imshow("Contours", drawing);
 
 				drawContours(drawing2, contours, largest_contour_index, Scalar(0, 255, 0), 2); // Draw the largest contour using previously stored index.
 
 				//imshow("biggest contours", drawing2);
 
-				center_of_rect_previous = center_of_rect;
-				center_of_rect = (bounding_rect.br() + bounding_rect.tl()) * 0.5;
+				Point center_of_rect = (bounding_rect.br() + bounding_rect.tl()) * 0.5;
 				circle(realtime_frame_with_biggest_contour, center_of_rect, 3, Scalar(255, 0, 0), 2);
 
 				drawContours(realtime_frame_with_biggest_contour, contours, largest_contour_index, Scalar(0, 255, 0), 2);
 				rectangle(realtime_frame_with_biggest_contour, bounding_rect.tl(), bounding_rect.br(), Scalar(0, 255, 255), 2, 8, 0);
 				imshow("realtime with biggest contour", realtime_frame_with_biggest_contour);
-				diff = 0;
-
-
-
-
 
 			}
-
 			TIME_ELAPSED = false;
 		}
-
-		if ((!DETECTED) && ((center_of_rect_previous == Point(-10, -10)) || (center_of_rect_previous == center_of_rect))) {
-			printf("Initial state\n");
-			DETECTED = false;
-		}
 		else {
-			printf("intruder!!!\n");
-			DETECTED = true;
+
 		}
 
-		imshow("background", background);
 
 		if (waitKey(10) == 27) { // 27 : ESC를 누르면 종료. 27 == ESC key
 			break;
