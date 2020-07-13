@@ -1,43 +1,63 @@
-#include "opencv2/opencv.hpp"  
-#include <iostream>  
+/*******************************************************************
+Creator : 2015112154 김석윤
+********************************************************************
+<Problem>
+- CCTV를 이용한 거동 수상자 인식
+
+<Input>
+- 현재 실시간 영상
+
+<Output>
+- 거동수상자의 존재 유무 판단
+********************************************************************/
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <thread>
+#include <iostream>
+#include <chrono>
 
 using namespace cv;
-using namespace std;
+
+bool TIME_ELAPSED; // 일정 시간이 지났는지 확인하는 bool 변수.
+RNG rng(12345);
+#define DIFF_THRESHOLD 0.03
+bool REMEMBER = true;
+bool DETECTED = false;
 
 
 
-int main(int, char**)
+
+int main()
 {
-    //동영상 파일로부터 부터 데이터 읽어오기 위해 준비  
-    VideoCapture cap1("example1_edit2.mp4");
-    if (!cap1.isOpened())
-    {
-        printf("동영상 파일을 열수 없습니다. \n");
-    }
-
-    //동영상 플레이시 크기를  320x240으로 지정  
-    cap1.set(CAP_PROP_FRAME_WIDTH, 320);
-    cap1.set(CAP_PROP_FRAME_HEIGHT, 240);
-
-
-    Mat frame1;
-    namedWindow("video", 1);
 
 
 
-    for (;;)
-    {
-
-        //웹캡으로부터 한 프레임을 읽어옴  
-        cap1 >> frame1;
-
-        imshow("video", frame1);
-
-
-        //30ms 정도 대기하도록 해야 동영상이 너무 빨리 재생되지 않음.  
-        if (waitKey(20) == 27) break; //ESC키 누르면 종료  
-    }
+	Mat realtime_frame; // 실시간 카메라로 들어오는 영상을 담기 위한 Mat 객체 선언.
+	Mat record_frame; // 실시간 카메라로 들어오는 영상을 기록하기 위한 Mat 객체 선언
+	Mat realtime_frame_with_biggest_contour;
+	Mat sub;
+	Mat background;
+	Mat gray_background;
+	Mat thrsh_background;
+	double diff = 0;
+	Point center_of_rect_previous = Point(-10, -10);
+	Point center_of_rect = Point(-10, -10);
 
 
-    return 0;
+	VideoCapture cap("C:/Users/K/NaverCloud/대학/개별연구/sample/example4_edit1.mp4");
+	namedWindow("Video", WINDOW_NORMAL);
+	if (!cap.isOpened()) { std::cout << "동영상을 읽을 수 없음" << std::endl; }
+
+	while (true) {
+		cap >> realtime_frame;
+		cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);
+		cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);
+		//cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);*/
+		imshow("Video", realtime_frame);
+
+		if (waitKey(30) >= 0) break;
+	}
+
+	return 0;
 }
