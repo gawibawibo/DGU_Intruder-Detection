@@ -1,62 +1,89 @@
-/*******************************************************************
-Creator : 2015112154 김석윤
-********************************************************************
-<Problem>
-- CCTV를 이용한 거동 수상자 인식
+/**
+ * @file bg_sub.cpp
+ * @brief Background subtraction tutorial sample code
+ * @author Domenico D. Bloisi
+ */
 
-<Input>
-- 현재 실시간 영상
-
-<Output>
-- 거동수상자의 존재 유무 판단
-********************************************************************/
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
-#include <thread>
 #include <iostream>
-#include <chrono>
+#include <sstream>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/video.hpp>
 
 using namespace cv;
+using namespace std;
 
-bool TIME_ELAPSED; // 일정 시간이 지났는지 확인하는 bool 변수.
-RNG rng(12345);
-#define DIFF_THRESHOLD 0.03
-bool REMEMBER = true;
-bool DETECTED = false;
+const char* params
+= "{ help h         |           | Print usage }"
+"{ input          | vtest.avi | Path to a video or a sequence of image }"
+"{ algo           | MOG2      | Background subtraction method (KNN, MOG2) }";
 
-
-
-
-int main()
+int main(int argc, char* argv[])
 {
+	CommandLineParser parser(argc, argv, params);
+	parser.about("This program shows how to use background subtraction methods provided by "
+		" OpenCV. You can process both videos and images.\n");
+	if (parser.has("help"))
+	{
+		//print help information
+		parser.printMessage();
+	}
+
+	//! [create]
+	//create Background Subtractor objects
+	Ptr<BackgroundSubtractor> pBackSub;
 
 
+	//pBackSub = createBackgroundSubtractorMOG2();
 
-	Mat realtime_frame; // 실시간 카메라로 들어오는 영상을 담기 위한 Mat 객체 선언.
-	Mat record_frame; // 실시간 카메라로 들어오는 영상을 기록하기 위한 Mat 객체 선언
-	Mat realtime_frame_with_biggest_contour;
-	Mat sub;
-	Mat background;
-	Mat gray_background;
-	Mat thrsh_background;
-	double diff = 0;
-	Point center_of_rect_previous = Point(-10, -10);
-	Point center_of_rect = Point(-10, -10);
+	pBackSub = createBackgroundSubtractorKNN();
 
 
-	VideoCapture cap("C:/Users/K/NaverCloud/대학/개별연구/sample/example4_edit1.mp4");
-	namedWindow("Video", WINDOW_NORMAL);
-	if (!cap.isOpened()) { std::cout << "동영상을 읽을 수 없음" << std::endl; }
+	//! [create]
 
+	//! [capture]
+	VideoCapture capture("C:/Users/K/NaverCloud/대학/개별연구/sample/example2.mp4");
+	if (!capture.isOpened()) {
+		//error in opening the video input
+		cerr << "Unable to open: " << parser.get<String>("input") << endl;
+		return 0;
+	}
+	//! [capture]
+
+	Mat frame, fgMask;
 	while (true) {
-		cap >> realtime_frame;
-		cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);
-		cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);
-		//cvtColor(realtime_frame, realtime_frame, COLOR_BGR2GRAY);*/
-		imshow("Video", realtime_frame);
+		capture >> frame;
+		if (frame.empty())
+			break;
 
-		if (waitKey(30) >= 0) break;
+		//! [apply]
+		//update the background model
+		pBackSub->apply(frame, fgMask);
+		//! [apply]
+
+		//! [display_frame_number]
+		//get the frame number and write it on the current frame
+		rectangle(frame, cv::Point(10, 2), cv::Point(100, 20),
+			cv::Scalar(255, 255, 255), -1);
+		stringstream ss;
+		ss << capture.get(CAP_PROP_POS_FRAMES);
+		string frameNumberString = ss.str();
+		putText(frame, frameNumberString.c_str(), cv::Point(15, 15),
+			FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+		//! [display_frame_number]
+
+		//! [show]
+		//show the current frame and the fg masks
+		imshow("Frame", frame);
+		imshow("FG Mask", fgMask);
+		//! [show]
+
+		//get the input from the keyboard
+		int keyboard = waitKey(30);
+		if (keyboard == 'q' || keyboard == 27)
+			break;
 	}
 
 	return 0;
